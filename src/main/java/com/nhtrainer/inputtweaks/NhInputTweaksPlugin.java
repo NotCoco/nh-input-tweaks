@@ -16,12 +16,14 @@ import javax.inject.Inject;
 import javax.swing.SwingUtilities;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.api.events.PostClientTick;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetItem;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
+import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.input.KeyListener;
 import net.runelite.client.input.KeyManager;
 import net.runelite.client.input.MouseListener;
@@ -154,6 +156,12 @@ public class NhInputTweaksPlugin extends Plugin
 		clearInventoryFeedback();
 	}
 
+	@Subscribe
+	public void onPostClientTick(PostClientTick event)
+	{
+		refreshInventoryFeedbackSlots();
+	}
+
 	private void handleFastTabKeyPressed(KeyEvent keyEvent)
 	{
 		int keyCode = keyEvent.getKeyCode();
@@ -256,7 +264,6 @@ public class NhInputTweaksPlugin extends Plugin
 				return;
 			}
 
-			refreshInventoryFeedbackSlots();
 			InventoryFeedbackSlot slot = inventoryFeedbackSlotAt(mouseEvent.getX(), mouseEvent.getY());
 			if (slot == null)
 			{
