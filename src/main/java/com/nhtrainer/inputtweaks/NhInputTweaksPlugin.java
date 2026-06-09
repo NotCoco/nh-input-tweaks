@@ -2,9 +2,12 @@ package com.nhtrainer.inputtweaks;
 
 import com.google.inject.Provides;
 import java.awt.AlphaComposite;
+import java.awt.Color;
 import java.awt.Composite;
+import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -22,6 +25,7 @@ import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetItem;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.input.KeyListener;
@@ -30,6 +34,9 @@ import net.runelite.client.input.MouseListener;
 import net.runelite.client.input.MouseManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.ui.overlay.WidgetItemOverlay;
 
@@ -70,6 +77,12 @@ public class NhInputTweaksPlugin extends Plugin
 
 	@Inject
 	private ItemManager itemManager;
+
+	@Inject
+	private ClientToolbar clientToolbar;
+
+	@Inject
+	private ConfigManager configManager;
 
 	@Inject
 	private NhInputTweaksConfig config;
@@ -132,9 +145,11 @@ public class NhInputTweaksPlugin extends Plugin
 	private volatile boolean inventoryFeedbackDragging;
 	private volatile int inventoryFeedbackPressX = -1;
 	private volatile int inventoryFeedbackPressY = -1;
+	private NhInputTweaksPanel panel;
+	private NavigationButton navigationButton;
 
 	@Provides
-	NhInputTweaksConfig provideConfig(ConfigManager configManager)
+	NhInputTweaksConfig provideConfig()
 	{
 		return configManager.getConfig(NhInputTweaksConfig.class);
 	}
@@ -142,6 +157,14 @@ public class NhInputTweaksPlugin extends Plugin
 	@Override
 	protected void startUp()
 	{
+		panel = new NhInputTweaksPanel(configManager, config);
+		navigationButton = NavigationButton.builder()
+			.tooltip("NH Input Tweaks")
+			.icon(createNavigationIcon())
+			.priority(8)
+			.panel(panel)
+			.build();
+		clientToolbar.addNavigation(navigationButton);
 		keyManager.registerKeyListener(fastTabKeyListener);
 		mouseManager.registerMouseListener(inventoryFeedbackMouseListener);
 		overlayManager.add(inventoryFeedbackOverlay);
@@ -153,6 +176,12 @@ public class NhInputTweaksPlugin extends Plugin
 		keyManager.unregisterKeyListener(fastTabKeyListener);
 		mouseManager.unregisterMouseListener(inventoryFeedbackMouseListener);
 		overlayManager.remove(inventoryFeedbackOverlay);
+		if (navigationButton != null)
+		{
+			clientToolbar.removeNavigation(navigationButton);
+			navigationButton = null;
+		}
+		panel = null;
 		clearInventoryFeedback();
 	}
 
@@ -162,10 +191,31 @@ public class NhInputTweaksPlugin extends Plugin
 		refreshInventoryFeedbackSlots();
 	}
 
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event)
+	{
+		if (!NhInputTweaksConfig.GROUP.equals(event.getGroup()))
+		{
+			return;
+		}
+
+		if (NhInputTweaksConfig.ITEM_DARKENING_AMOUNT.equals(event.getKey()))
+		{
+			inventoryFeedbackDarkImageCache.clear();
+			repaintClientCanvas();
+		}
+
+		NhInputTweaksPanel currentPanel = panel;
+		if (currentPanel != null)
+		{
+			SwingUtilities.invokeLater(currentPanel::refresh);
+		}
+	}
+
 	private void handleFastTabKeyPressed(KeyEvent keyEvent)
 	{
 		int keyCode = keyEvent.getKeyCode();
-		if (keyCode < KeyEvent.VK_F1 || keyCode > KeyEvent.VK_F12 || keyEvent.isConsumed())
+		if (!config.fastTabsEnabled() || keyCode < KeyEvent.VK_F1 || keyCode > KeyEvent.VK_F12 || keyEvent.isConsumed())
 		{
 			return;
 		}
@@ -255,6 +305,12 @@ public class NhInputTweaksPlugin extends Plugin
 		{
 			if (!isLeftMousePress(mouseEvent))
 			{
+				return;
+			}
+
+			if (config.itemDarkeningAmount() <= 0)
+			{
+				clearInventoryFeedback();
 				return;
 			}
 
@@ -365,10 +421,15 @@ public class NhInputTweaksPlugin extends Plugin
 		return null;
 	}
 
-	private BufferedImage darkenedInventoryImage(int itemId, int quantity, int brightnessPercent)
+	private BufferedImage darkenedInventoryImage(int itemId, int quantity, int darkeningAmount)
 	{
-		int brightness = Math.max(25, Math.min(95, brightnessPercent));
-		long key = (((long) itemId) << 40) ^ (((long) quantity) << 8) ^ brightness;
+		int darkening = Math.max(0, Math.min(100, darkeningAmount));
+		if (darkening <= 0)
+		{
+			return null;
+		}
+
+		long key = (((long) itemId) << 40) ^ (((long) quantity) << 8) ^ darkening;
 		BufferedImage cached = inventoryFeedbackDarkImageCache.get(key);
 		if (cached != null)
 		{
@@ -381,6 +442,7 @@ public class NhInputTweaksPlugin extends Plugin
 			return null;
 		}
 
+		int brightness = 100 - darkening;
 		float multiplier = brightness / 100.0f;
 		BufferedImage darkened = new BufferedImage(source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_ARGB);
 		boolean hasVisiblePixels = false;
@@ -497,7 +559,7 @@ public class NhInputTweaksPlugin extends Plugin
 				return;
 			}
 
-			BufferedImage darkened = darkenedInventoryImage(itemId, widgetItem.getQuantity(), config.clickedItemBrightness());
+			BufferedImage darkened = darkenedInventoryImage(itemId, widgetItem.getQuantity(), config.itemDarkeningAmount());
 			if (darkened == null)
 			{
 				return;
@@ -510,6 +572,27 @@ public class NhInputTweaksPlugin extends Plugin
 			graphics.setComposite(previousComposite);
 			repaintClientCanvas();
 		}
+	}
+
+	private BufferedImage createNavigationIcon()
+	{
+		BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+		Graphics2D graphics = image.createGraphics();
+		try
+		{
+			graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			graphics.setColor(new Color(28, 28, 28, 230));
+			graphics.fillRoundRect(1, 1, 14, 14, 4, 4);
+			graphics.setColor(ColorScheme.BRAND_ORANGE);
+			graphics.drawRoundRect(1, 1, 14, 14, 4, 4);
+			graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 9));
+			graphics.drawString("F", 5, 11);
+		}
+		finally
+		{
+			graphics.dispose();
+		}
+		return image;
 	}
 
 	private static final class InventoryFeedbackSlot

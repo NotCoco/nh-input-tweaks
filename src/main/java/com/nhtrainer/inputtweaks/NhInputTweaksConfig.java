@@ -8,18 +8,33 @@ import net.runelite.client.config.Range;
 @ConfigGroup("nhinputtweaks")
 public interface NhInputTweaksConfig extends Config
 {
-	@Range(
-		min = 25,
-		max = 95
-	)
+	String GROUP = "nhinputtweaks";
+	String FAST_TABS_ENABLED = "fastTabsEnabled";
+	String ITEM_DARKENING_AMOUNT = "itemDarkeningAmount";
+
 	@ConfigItem(
-		keyName = "clickedItemBrightness",
-		name = "Clicked item brightness",
-		description = "Brightness percentage for clicked item feedback. Lower values are darker.",
+		keyName = FAST_TABS_ENABLED,
+		name = "Fast F-key tabs",
+		description = "Runs the tab-switching F-key script immediately when an F-key is pressed.",
 		position = 1
 	)
-	default int clickedItemBrightness()
+	default boolean fastTabsEnabled()
 	{
-		return 65;
+		return true;
+	}
+
+	@Range(
+		min = 0,
+		max = 100
+	)
+	@ConfigItem(
+		keyName = ITEM_DARKENING_AMOUNT,
+		name = "Item darkening",
+		description = "Darkening strength for clicked item feedback. Set to 0 to disable.",
+		position = 2
+	)
+	default int itemDarkeningAmount()
+	{
+		return 35;
 	}
 }

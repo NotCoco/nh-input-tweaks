@@ -7,7 +7,10 @@ RuneLite plugin for two small input-feel changes:
 
 ## Settings
 
-- `Clicked item brightness`: controls how dark the clicked item feedback appears. Lower values are darker. The default is `65`.
+- `Fast F-key tabs`: enables or disables immediate F-key tab switching. Enabled by default.
+- `Item darkening`: controls clicked item feedback strength from `0` to `100`. Set to `0` to disable it. The default is `35`.
+
+The plugin also adds a RuneLite sidebar icon with the same quick controls.
 
 ## Running
 
