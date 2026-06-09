@@ -248,7 +248,7 @@ public class NhInputTweaksPlugin extends Plugin
 
 	private int sidePanelCloseMode(int layoutKey)
 	{
-		if (layoutKey == TOPLEVEL_RESIZABLE_LAYOUT_KEY
+		if ((layoutKey == TOPLEVEL_RESIZABLE_LAYOUT_KEY || layoutKey == TOPLEVEL_BOTTOM_LINE_LAYOUT_KEY)
 			&& client.getVarbitValue(VarbitID.HOTKEY_CANNOT_CLOSE_SIDEPANEL) == 1)
 		{
 			return HOTKEY_CANNOT_CLOSE_SIDE_PANEL;
