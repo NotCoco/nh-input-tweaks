@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.events.PostClientTick;
 import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetItem;
 import net.runelite.client.callback.ClientThread;
@@ -56,6 +57,8 @@ public class NhInputTweaksPlugin extends Plugin
 	private static final int TOPLEVEL_DISPLAY_LAYOUT_KEY = 1132;
 	private static final int TOPLEVEL_MOBILE_LAYOUT_KEY = 1745;
 	private static final int TOPLEVEL_SPECTATOR_LAYOUT_KEY = 139;
+	private static final int HOTKEY_CAN_CLOSE_SIDE_PANEL = 1;
+	private static final int HOTKEY_CANNOT_CLOSE_SIDE_PANEL = 0;
 	private static final long INVENTORY_FEEDBACK_PRESS_NANOS = TimeUnit.MILLISECONDS.toNanos(140L);
 	private static final long INVENTORY_FEEDBACK_RELEASE_NANOS = TimeUnit.MILLISECONDS.toNanos(80L);
 	private static final int INVENTORY_FEEDBACK_DRAG_THRESHOLD = 3;
@@ -235,12 +238,23 @@ public class NhInputTweaksPlugin extends Plugin
 	{
 		try
 		{
-			client.runScript(TOPLEVEL_KEYPRESS_SCRIPT_ID, jagexKeyCode, layoutKey, 1);
+			client.runScript(TOPLEVEL_KEYPRESS_SCRIPT_ID, jagexKeyCode, layoutKey, sidePanelCloseMode(layoutKey));
 		}
 		catch (Exception ex)
 		{
 			log.warn("Fast F-key tab script failed for key {} layout {}", jagexKeyCode, layoutKey, ex);
 		}
+	}
+
+	private int sidePanelCloseMode(int layoutKey)
+	{
+		if (layoutKey == TOPLEVEL_RESIZABLE_LAYOUT_KEY
+			&& client.getVarbitValue(VarbitID.HOTKEY_CANNOT_CLOSE_SIDEPANEL) == 1)
+		{
+			return HOTKEY_CANNOT_CLOSE_SIDE_PANEL;
+		}
+
+		return HOTKEY_CAN_CLOSE_SIDE_PANEL;
 	}
 
 	private int topLevelLayoutKey()
