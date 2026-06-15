@@ -1,16 +1,13 @@
-# NH Input Tweaks
+# Aim Trainer
 
-RuneLite plugin for two small input-feel changes:
+RuneLite plugin for visual click-box aim training.
 
-- Runs the game's top-level F-key tab script immediately when `F1` through `F12` are pressed.
-- Draws item-shaped visual feedback over the clicked inventory item.
+## Features
 
-## Settings
-
-- `Fast F-key tabs`: enables or disables immediate F-key tab switching. Enabled by default.
-- `Item darkening`: controls clicked item feedback strength from `0` to `100`. Set to `0` to disable it. The default is `35`.
-
-The plugin also adds a RuneLite sidebar icon with the same quick controls.
+- Adds an `Aim box` menu option for supported inventory items, spellbook widgets, NPCs, and players.
+- Draws dark click-box overlays so players can practice moving to and clicking the exact clickable area.
+- Blocks normal left-click actions while training is enabled so clicks are used for aim feedback instead of gameplay actions.
+- Adds optional piano tiles mode with local scores and configurable sound volume.
 
 ## Running
 
@@ -19,6 +16,3 @@ The plugin also adds a RuneLite sidebar icon with the same quick controls.
 ```
 
 Java plugin changes require restarting the RuneLite development client.
-
-For Jagex accounts, follow RuneLite's development-client login flow:
-https://github.com/runelite/runelite/wiki/Using-Jagex-Accounts
